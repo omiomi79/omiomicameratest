@@ -566,9 +566,16 @@ $('#bClear').onclick = () => {
   setStatus('マスクを消去しました。ブラシで塗るか、もう一度「枠を検出」してください。');
 };
 $('#bNew').onclick = () => file.click();
+// Inside the claude.ai artifact viewer plain download links are blocked, so use its downloads capability there.
 $('#bSave').onclick = () => {
   if (!S.result) return;
-  S.result.toBlob(b => {
+  S.result.toBlob(async b => {
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+    if (dl) {
+      try { await dl.save({ filename: 'akusta-wakekeshi.jpg', data: b }); setStatus('保存しました。'); }
+      catch (e) { if (e && e.code !== 'declined') setStatus('保存できませんでした：' + (e.message || e.code)); }
+      return;
+    }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(b); a.download = 'akusta-wakekeshi.jpg';
     document.body.appendChild(a); a.click(); a.remove();
