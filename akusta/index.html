@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アクスタ枠けし</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f1a; --panel:rgba(255,255,255,.04); --line:rgba(255,255,255,.09);
+  --text:#f0ede8; --muted:rgba(240,237,232,.55);
+  --accent:#f7a14f; --blue:#4f8ef7; --green:#4fcc8e; --red:#ff4f6a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100%}
+body{padding:0 16px 40px}
+header{max-width:960px;margin:0 auto;padding:18px 0 12px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.logo{font-family:'Syne','Noto Sans JP',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.3px}
+.logo em{color:var(--accent);font-style:normal}
+.sub{font-size:12px;color:var(--muted)}
+main{max-width:960px;margin:0 auto}
+
+#drop{border:2px dashed var(--line);border-radius:16px;padding:48px 20px;text-align:center;cursor:pointer;background:var(--panel);transition:border-color .2s,background .2s}
+#drop.over,#drop:hover{border-color:var(--accent);background:rgba(247,161,79,.06)}
+#drop .big{font-size:18px;font-weight:700;margin-bottom:8px}
+#drop p{font-size:13px;color:var(--muted);line-height:1.8}
+.howto{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.howto div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.7}
+.howto b{color:var(--accent);font-family:'Syne',sans-serif;margin-right:6px}
+
+.hint{font-size:13px;line-height:1.7;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.stage{display:flex;justify-content:center;border-radius:12px;overflow:hidden;background:#05060c;border:1px solid var(--line);touch-action:none;user-select:none;-webkit-user-select:none}
+.wrap{position:relative;line-height:0}
+#view{display:block;max-width:100%;max-height:72vh;width:auto;height:auto}
+#overlay{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair}
+#busy{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(5,6,12,.6);font-size:14px;font-weight:500;line-height:1.5;padding:16px;text-align:center}
+.spin{width:20px;height:20px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+button,.btn{font:inherit;font-size:13px;font-weight:500;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:100px;padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap}
+button:hover{border-color:rgba(255,255,255,.25)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+button.primary{background:var(--accent);border-color:var(--accent);color:#1a1205;font-weight:700}
+button.go{background:var(--green);border-color:var(--green);color:#06210f;font-weight:700}
+.sp{flex:1}
+label.sl{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+label.sl input[type=range]{width:110px;accent-color:var(--accent)}
+details{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+summary{cursor:pointer;font-size:13px;font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px 18px;margin-top:10px}
+.grid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.grid label span b{color:var(--text);font-weight:500}
+.grid input[type=range]{width:100%;accent-color:var(--accent)}
+.grid select{font:inherit;font-size:13px;background:#151827;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px}
+.chk{flex-direction:row!important;align-items:center}
+#status{font-size:12px;color:var(--muted);margin-top:10px;min-height:1.5em;line-height:1.6}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+@media (max-width:520px){ button{padding:8px 11px;font-size:12px} label.sl input[type=range]{width:80px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">アクスタ<em>枠けし</em></div>
+  <div class="sub">写真に写ったアクリルスタンドの透明な枠だけを検出して消します（画像はブラウザ内だけで処理）</div>
+</header>
+<main>
+  <section id="drop" tabindex="0">
+    <div class="big">📷 写真をえらぶ / ドロップ</div>
+    <p>アクスタを撮った写真をアップロードしてください。<br>サーバーには送信されません。</p>
+    <input id="file" type="file" accept="image/*" hidden>
+  </section>
+  <div class="howto" id="howto">
+    <div><b>1</b>アクスタ全体（枠ごと）を指でなぞって四角で囲む</div>
+    <div><b>2</b>「枠を検出」でキャラを守りつつ透明枠の線を自動で拾う</div>
+    <div><b>3</b>検出漏れは＋ブラシ、消しすぎは消しゴムで調整</div>
+    <div><b>4</b>「枠を消す」で周りの背景から自然に埋めて保存</div>
+  </div>
+
+  <section id="editor" hidden>
+    <div class="hint" id="hint">アクスタ全体（透明な枠も含めて）をドラッグで四角く囲んでください。</div>
+    <div class="stage" id="stage"><div class="wrap">
+      <canvas id="view"></canvas>
+      <canvas id="overlay"></canvas>
+      <div id="busy" hidden><div class="spin"></div><span id="busyText">処理中…</span></div>
+    </div></div>
+    <div class="legend">
+      <span><i style="background:#ffd34f"></i>囲み範囲</span>
+      <span><i style="background:var(--red)"></i>消す部分（枠）</span>
+      <span><i style="background:#4fd8f7"></i>守る部分（キャラ）</span>
+    </div>
+
+    <div class="bar">
+      <button id="tRect" class="on">▭ 範囲</button>
+      <button id="tAdd">＋ ブラシ</button>
+      <button id="tErase">− 消しゴム</button>
+      <label class="sl">太さ <input id="brush" type="range" min="4" max="80" value="18"></label>
+    </div>
+    <div class="bar">
+      <button id="bDetect" class="primary">✦ 枠を検出</button>
+      <button id="bApply" class="go" disabled>✂ 枠を消す</button>
+      <button id="bCompare" disabled>👁 押して比較</button>
+      <button id="bMask">赤表示 ON</button>
+      <span class="sp"></span>
+      <button id="bClear">マスク全消去</button>
+      <button id="bSave" disabled>⬇ 保存</button>
+      <button id="bNew">別の写真</button>
+    </div>
+
+    <details>
+      <summary>詳細設定（うまく検出できないとき）</summary>
+      <div class="grid">
+        <label>枠の形
+          <select id="shape">
+            <option value="contour">キャラの輪郭に沿った形（ふつうのアクスタ）</option>
+            <option value="rect">四角形（囲み範囲＝アクリル板の外周）</option>
+            <option value="all">範囲内のキャラ以外の線を全部</option>
+          </select>
+        </label>
+        <label><span>キャラからの距離：<b id="vOffset">自動</b></span>
+          <input id="offset" type="range" min="0" max="120" value="0"></label>
+        <label><span>距離の幅：<b id="vTol">6</b>px</span>
+          <input id="tol" type="range" min="1" max="40" value="6"></label>
+        <label><span>線の太さ：<b id="vThick">3</b>px</span>
+          <input id="thick" type="range" min="1" max="15" value="3"></label>
+        <label><span>線の感度：<b id="vSens">60</b></span>
+          <input id="sens" type="range" min="10" max="100" value="60"></label>
+        <label><span>なじませ半径：<b id="vRad">5</b></span>
+          <input id="rad" type="range" min="2" max="20" value="5"></label>
+        <label class="chk"><input id="fill" type="checkbox"> 枠の内側の反射・くもりもまとめて消す</label>
+      </div>
+    </details>
+    <div id="status"></div>
+  </section>
+</main>
+
+<script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js"></script>
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const WORK_MAX = 1280, FULL_MAX = 4096;
+
+// ---------- OpenCV loader ----------
+// The Emscripten module is itself "thenable": resolving a promise with it (or returning it from an
+// async function) recurses forever. So the promise resolves empty and callers read window.cv.
+const cvReady = new Promise(resolve => {
+  const check = () => {
+    const c = window.cv;
+    if (c && c.Mat) return resolve();
+    if (c instanceof Promise) { c.then(m => { window.cv = m; resolve(); }); return; }
+    setTimeout(check, 100);
+  };
+  check();
+});
+
+// ---------- state ----------
+const S = {
+  full: null, W: 0, H: 0,        // full-resolution source canvas
+  work: null, w: 0, h: 0, s: 1,  // working-resolution source canvas
+  result: null, resultWork: null,
+  rect: null,
+  char: null, dist: null, edges: null, auto: null,
+  add: null, erase: null,
+  D: 0, mode: 'rect', showMask: true, showOrig: false,
+};
+
+const view = $('#view'), ov = $('#overlay');
+const vctx = view.getContext('2d'), octx = ov.getContext('2d');
+
+const setStatus = t => { $('#status').textContent = t; };
+const setHint = t => { $('#hint').textContent = t; };
+const busy = (on, t) => { $('#busy').hidden = !on; if (t) $('#busyText').textContent = t; };
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
+// ---------- loading ----------
+const drop = $('#drop'), file = $('#file');
+drop.addEventListener('click', () => file.click());
+drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') file.click(); });
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) load(e.dataTransfer.files[0]); });
+file.addEventListener('change', () => { if (file.files[0]) load(file.files[0]); file.value = ''; });
+
+function load(f) {
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => { URL.revokeObjectURL(url); setImage(img); };
+  img.onerror = () => { URL.revokeObjectURL(url); alert('画像を読み込めませんでした'); };
+  img.src = url;
+}
+
+function setImage(img) {
+  const k = Math.min(1, FULL_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+  S.W = Math.round(img.naturalWidth * k); S.H = Math.round(img.naturalHeight * k);
+  S.full = document.createElement('canvas'); S.full.width = S.W; S.full.height = S.H;
+  S.full.getContext('2d').drawImage(img, 0, 0, S.W, S.H);
+  S.s = Math.min(1, WORK_MAX / Math.max(S.W, S.H));
+  S.w = Math.round(S.W * S.s); S.h = Math.round(S.H * S.s);
+  S.work = document.createElement('canvas'); S.work.width = S.w; S.work.height = S.h;
+  const wc = S.work.getContext('2d'); wc.imageSmoothingQuality = 'high';
+  wc.drawImage(S.full, 0, 0, S.w, S.h);
+  view.width = ov.width = S.w; view.height = ov.height = S.h;
+  const n = S.w * S.h;
+  S.add = new Uint8Array(n); S.erase = new Uint8Array(n);
+  S.auto = null; S.char = null; S.dist = null; S.edges = null;
+  S.result = S.resultWork = null;
+  const ix = Math.round(S.w * .15), iy = Math.round(S.h * .1);
+  S.rect = { x: ix, y: iy, w: S.w - 2 * ix, h: S.h - 2 * iy };
+  drop.hidden = true; $('#howto').hidden = true; $('#editor').hidden = false;
+  setMode('rect');
+  setHint('アクスタ全体（透明な枠も含めて）をドラッグで四角く囲んで「枠を検出」を押してください。');
+  setStatus(`${S.W}×${S.H}px`);
+  updateButtons(); render();
+}
+
+// ---------- rendering ----------
+let raf = 0;
+function render() { if (!raf) raf = requestAnimationFrame(draw); }
+function draw() {
+  raf = 0;
+  vctx.drawImage(S.resultWork && !S.showOrig ? S.resultWork : S.work, 0, 0);
+  octx.clearRect(0, 0, S.w, S.h);
+  if (S.showOrig) return;
+  if (S.showMask && !S.resultWork) {
+    const id = octx.createImageData(S.w, S.h), d = id.data;
+    const m = finalMask();
+    for (let i = 0, j = 0; i < m.length; i++, j += 4) {
+      if (m[i]) { d[j] = 255; d[j + 1] = 79; d[j + 2] = 106; d[j + 3] = 170; }
+      else if (S.char && S.char[i] && isCharEdge(i)) { d[j] = 79; d[j + 1] = 216; d[j + 2] = 247; d[j + 3] = 220; }
+    }
+    octx.putImageData(id, 0, 0);
+  }
+  if (S.rect && S.mode === 'rect') {
+    const r = S.rect, lw = Math.max(2, S.w / 400);
+    octx.lineWidth = lw; octx.setLineDash([lw * 4, lw * 3]);
+    octx.strokeStyle = '#ffd34f'; octx.strokeRect(r.x, r.y, r.w, r.h);
+    octx.setLineDash([]);
+  }
+  if (cursor && (S.mode === 'add' || S.mode === 'erase')) {
+    octx.lineWidth = Math.max(1.5, S.w / 600);
+    octx.strokeStyle = S.mode === 'add' ? '#ff4f6a' : '#ffffff';
+    octx.beginPath(); octx.arc(cursor.x, cursor.y, brushR(), 0, Math.PI * 2); octx.stroke();
+  }
+}
+function isCharEdge(i) {
+  const c = S.char, w = S.w, x = i % w;
+  return (x > 0 && !c[i - 1]) || (x < w - 1 && !c[i + 1]) || !c[i - w] || !c[i + w];
+}
+function finalMask() {
+  const n = S.w * S.h, out = new Uint8Array(n), a = S.auto, ad = S.add, er = S.erase;
+  for (let i = 0; i < n; i++) out[i] = ((a && a[i]) || ad[i]) && !er[i] ? 1 : 0;
+  return out;
+}
+
+// ---------- tools ----------
+function setMode(m) {
+  S.mode = m;
+  $('#tRect').classList.toggle('on', m === 'rect');
+  $('#tAdd').classList.toggle('on', m === 'add');
+  $('#tErase').classList.toggle('on', m === 'erase');
+  render();
+}
+$('#tRect').onclick = () => setMode(S.mode === 'rect' ? 'none' : 'rect');
+$('#tAdd').onclick = () => { if (S.resultWork) backToEdit(); setMode(S.mode === 'add' ? 'none' : 'add'); };
+$('#tErase').onclick = () => { if (S.resultWork) backToEdit(); setMode(S.mode === 'erase' ? 'none' : 'erase'); };
+
+const brushR = () => +$('#brush').value * S.w / ov.getBoundingClientRect().width / 2;
+const toWork = e => {
+  const b = ov.getBoundingClientRect();
+  return { x: (e.clientX - b.left) * S.w / b.width, y: (e.clientY - b.top) * S.h / b.height };
+};
+let drag = null, cursor = null;
+ov.addEventListener('pointerdown', e => {
+  if (!S.work || S.mode === 'none') return;
+  ov.setPointerCapture(e.pointerId);
+  const p = toWork(e);
+  drag = { start: p, last: p };
+  if (S.mode === 'add' || S.mode === 'erase') paint(p, p);
+});
+ov.addEventListener('pointermove', e => {
+  if (!S.work) return;
+  const p = toWork(e);
+  cursor = e.pointerType === 'mouse' || drag ? p : null;
+  if (drag) {
+    if (S.mode === 'rect') {
+      const a = drag.start;
+      S.rect = clampRect({ x: Math.min(a.x, p.x), y: Math.min(a.y, p.y), w: Math.abs(p.x - a.x), h: Math.abs(p.y - a.y) });
+    } else if (S.mode === 'add' || S.mode === 'erase') paint(drag.last, p);
+    drag.last = p;
+  }
+  render();
+});
+const endDrag = () => {
+  if (drag && S.mode === 'rect' && (S.rect.w < 12 || S.rect.h < 12)) {
+    S.rect = clampRect({ x: S.w * .15, y: S.h * .1, w: S.w * .7, h: S.h * .8 });
+  }
+  if (drag && S.mode === 'rect') setStatus('範囲を設定しました。「枠を検出」を押してください。');
+  drag = null; render();
+};
+ov.addEventListener('pointerup', endDrag);
+ov.addEventListener('pointercancel', endDrag);
+ov.addEventListener('pointerleave', () => { cursor = null; render(); });
+
+function clampRect(r) {
+  const x = Math.max(1, Math.round(r.x)), y = Math.max(1, Math.round(r.y));
+  return { x, y, w: Math.max(1, Math.min(S.w - 2 - x, Math.round(r.w))), h: Math.max(1, Math.min(S.h - 2 - y, Math.round(r.h))) };
+}
+
+function paint(a, b) {
+  const r = brushR(), set = S.mode === 'add' ? S.add : S.erase, clr = S.mode === 'add' ? S.erase : S.add;
+  const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (r / 2)));
+  for (let k = 0; k <= steps; k++) {
+    const cx = a.x + (b.x - a.x) * k / steps, cy = a.y + (b.y - a.y) * k / steps;
+    const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(S.w - 1, Math.ceil(cx + r));
+    const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(S.h - 1, Math.ceil(cy + r));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) { const i = y * S.w + x; set[i] = 1; clr[i] = 0; }
+    }
+  }
+  updateButtons();
+}
+
+// ---------- detection ----------
+$('#bDetect').onclick = detect;
+async function detect() {
+  if (S.resultWork) backToEdit();
+  busy(true, 'OpenCVを読み込み中…（初回は少し時間がかかります）');
+  let cv;
+  try { await cvReady; cv = window.cv; } catch (e) { busy(false); setStatus('OpenCVの読み込みに失敗しました。通信環境を確認してください。'); return; }
+  busy(true, 'キャラと枠を検出中…'); await nextFrame();
+  const t0 = performance.now();
+  const mats = [];
+  const M = m => (mats.push(m), m);
+  try {
+    const { w, h } = S, r = S.rect;
+    const src = M(cv.imread(S.work));
+    const rgb = M(new cv.Mat()); cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
+
+    // 1) protect the printed character: GrabCut inside the user rectangle
+    const mg = Math.round(Math.max(r.w, r.h) * 0.08);
+    const rx = Math.max(0, r.x - mg), ry = Math.max(0, r.y - mg);
+    const rw = Math.min(w, r.x + r.w + mg) - rx, rh = Math.min(h, r.y + r.h + mg) - ry;
+    const sub = M(rgb.roi(new cv.Rect(rx, ry, rw, rh)));
+    const gm = M(new cv.Mat()), bgd = M(new cv.Mat()), fgd = M(new cv.Mat());
+    cv.grabCut(sub, gm, new cv.Rect(r.x - rx, r.y - ry, r.w, r.h), bgd, fgd, 5, cv.GC_INIT_WITH_RECT);
+    const fg = M(new cv.Mat(rh, rw, cv.CV_8UC1));
+    for (let i = 0; i < gm.data.length; i++) fg.data[i] = (gm.data[i] & 1) ? 255 : 0;
+    const k3 = M(cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3)));
+    const k7 = M(cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(7, 7)));
+    cv.morphologyEx(fg, fg, cv.MORPH_OPEN, k3);
+    cv.morphologyEx(fg, fg, cv.MORPH_CLOSE, k7);
+    // keep big blobs only, filled (no holes)
+    const cs = new cv.MatVector(), hier = M(new cv.Mat());
+    cv.findContours(fg, cs, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    let maxA = 0; const areas = [];
+    for (let i = 0; i < cs.size(); i++) { const c = cs.get(i); areas.push(cv.contourArea(c)); c.delete(); maxA = Math.max(maxA, areas[i]); }
+    const filled = M(cv.Mat.zeros(rh, rw, cv.CV_8UC1));
+    for (let i = 0; i < cs.size(); i++) {
+      if (areas[i] >= Math.max(maxA * 0.12, r.w * r.h * 0.002)) cv.drawContours(filled, cs, i, new cv.Scalar(255), -1);
+    }
+    cs.delete();
+    const charM = M(cv.Mat.zeros(h, w, cv.CV_8UC1));
+    filled.copyTo(charM.roi(new cv.Rect(rx, ry, rw, rh)));
+    S.char = new Uint8Array(w * h);
+    let charArea = 0;
+    for (let i = 0; i < S.char.length; i++) if (charM.data[i]) { S.char[i] = 1; charArea++; }
+    if (charArea < r.w * r.h * 0.01) {
+      setStatus('キャラ部分をうまく検出できませんでした。範囲をアクスタに合わせて囲み直すか、詳細設定で「四角形」を試してください。');
+    }
+
+    // 2) distance from the character for every pixel
+    const inv = M(new cv.Mat()); cv.bitwise_not(charM, inv);
+    const dist = M(new cv.Mat()); cv.distanceTransform(inv, dist, cv.DIST_L2, 5);
+    S.dist = new Float32Array(dist.data32F);
+
+    // 3) thin lines (the acrylic edge shows up as a thin highlight / shadow)
+    const gray = M(new cv.Mat()); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, gray, new cv.Size(3, 3), 0);
+    if (S.grayMat) S.grayMat.delete();
+    S.grayMat = gray.clone(); // kept for re-thresholding when the sensitivity changes
+    computeEdges(cv);
+    computeFrame();
+    const n = finalMask().reduce((a, b) => a + b, 0);
+    setStatus(`検出完了（${Math.round(performance.now() - t0)}ms）` +
+      (S.D ? `・枠はキャラから約${Math.round(S.D / S.s)}px外側。` : '') +
+      (n ? '赤い部分が消える場所です。ズレていたらブラシ・消しゴムや詳細設定で調整してください。' : '枠の線が見つかりませんでした。詳細設定を変えるか、ブラシで塗ってください。'));
+    setHint('赤＝消す枠、水色＝守るキャラの輪郭。よければ「枠を消す」を押してください。');
+    setMode('none');
+  } catch (e) {
+    console.error(e);
+    setStatus('検出中にエラーが発生しました：' + (e.message || e));
+  } finally {
+    mats.forEach(m => m.delete());
+    busy(false); updateButtons(); render();
+  }
+}
+
+function computeEdges(cv) {
+  const hi = 30 + (100 - +$('#sens').value) * 2.2; // higher sensitivity → lower threshold
+  const e = new cv.Mat();
+  cv.Canny(S.grayMat, e, hi * 0.4, hi);
+  S.edges = new Uint8Array(e.data);
+  e.delete();
+}
+
+// Builds the automatic frame mask from char / dist / edges using the current settings.
+function computeFrame() {
+  if (!S.char || !S.edges) return;
+  const cv = window.cv;
+  const { w, h, dist, edges, char } = S, r = S.rect;
+  const shape = $('#shape').value, tol = +$('#tol').value, thick = +$('#thick').value;
+  const pad = Math.round(Math.max(r.w, r.h) * 0.03) + tol;
+  const x0 = Math.max(0, r.x - pad), x1 = Math.min(w - 1, r.x + r.w + pad);
+  const y0 = Math.max(0, r.y - pad), y1 = Math.min(h - 1, r.y + r.h + pad);
+  const hasChar = char.some(v => v);
+
+  // estimate how far outside the print the acrylic edge sits: the distance with the densest lines
+  const maxD = Math.max(8, Math.round(Math.min(r.w, r.h) * 0.3));
+  let D = +$('#offset').value;
+  if (shape === 'contour' && !D && hasChar) {
+    const ec = new Float64Array(maxD + 2), pc = new Float64Array(maxD + 2);
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const i = y * w + x, d = Math.round(dist[i]);
+      if (d < 3 || d > maxD) continue;
+      pc[d]++; if (edges[i]) ec[d]++;
+    }
+    let best = 0, bestV = 0;
+    for (let d = 3; d <= maxD; d++) {
+      let e = 0, p = 0;
+      for (let k = -1; k <= 1; k++) { e += ec[d + k] || 0; p += pc[d + k] || 0; }
+      const v = p > 50 ? e / p : 0;
+      if (v > bestV) { bestV = v; best = d; }
+    }
+    D = best;
+  }
+  S.D = shape === 'contour' ? D : 0;
+  $('#vOffset').textContent = +$('#offset').value ? `${D}px` : (shape === 'contour' && D ? `自動（${D}px）` : '自動');
+
+  const m = new cv.Mat(h, w, cv.CV_8UC1, new cv.Scalar(0)), md = m.data;
+  const rTol = Math.max(tol, Math.round(Math.min(r.w, r.h) * 0.03));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = y * w + x;
+    if (!edges[i] || dist[i] < 2) continue;
+    let hit = false;
+    if (shape === 'contour') hit = D > 0 && Math.abs(dist[i] - D) <= tol;
+    else if (shape === 'rect') hit = Math.min(Math.abs(x - r.x), Math.abs(x - r.x - r.w), Math.abs(y - r.y), Math.abs(y - r.y - r.h)) <= rTol;
+    else hit = x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+    if (hit) md[i] = 255;
+  }
+  // drop isolated specks (background texture), keep line-like pieces
+  const lab = new cv.Mat(), stats = new cv.Mat(), cent = new cv.Mat();
+  const nl = cv.connectedComponentsWithStats(m, lab, stats, cent, 8, cv.CV_32S);
+  const minA = Math.max(6, Math.round(Math.min(r.w, r.h) * 0.02));
+  const keep = new Uint8Array(nl);
+  for (let l = 1; l < nl; l++) {
+    const bw = stats.intAt(l, cv.CC_STAT_WIDTH), bh = stats.intAt(l, cv.CC_STAT_HEIGHT);
+    keep[l] = stats.intAt(l, cv.CC_STAT_AREA) >= minA || Math.max(bw, bh) >= minA * 1.5 ? 1 : 0;
+  }
+  const ld = lab.data32S;
+  for (let i = 0; i < md.length; i++) md[i] = keep[ld[i]] ? 255 : 0;
+  lab.delete(); stats.delete(); cent.delete();
+  if (thick > 1) {
+    const k = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(thick * 2 - 1, thick * 2 - 1));
+    cv.dilate(m, m, k); k.delete();
+  }
+  const fill = $('#fill').checked;
+  S.auto = new Uint8Array(w * h);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = y * w + x;
+    if (char[i]) continue; // never touch the character
+    let v = md[i] > 0;
+    if (fill && shape === 'contour' && D) v = v || (dist[i] <= D + tol && dist[i] >= 1.5);
+    if (fill && shape !== 'contour') v = v || (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h && dist[i] >= 1.5);
+    S.auto[i] = v ? 1 : 0;
+  }
+  m.delete();
+}
+
+// live re-computation when settings change
+const bindVal = (id, out) => $(id).addEventListener('input', () => {
+  if (out) $(out).textContent = $(id).value;
+  if (!S.char) return;
+  if (S.resultWork) backToEdit();
+  if (id === '#sens') computeEdges(window.cv);
+  computeFrame(); updateButtons(); render();
+});
+bindVal('#tol', '#vTol'); bindVal('#thick', '#vThick'); bindVal('#sens', '#vSens');
+bindVal('#offset'); bindVal('#shape'); bindVal('#fill');
+$('#shape').addEventListener('change', () => $('#shape').dispatchEvent(new Event('input')));
+$('#fill').addEventListener('change', () => $('#fill').dispatchEvent(new Event('input')));
+$('#rad').addEventListener('input', () => { $('#vRad').textContent = $('#rad').value; });
+
+// ---------- inpaint ----------
+$('#bApply').onclick = apply;
+async function apply() {
+  const mWork = finalMask();
+  if (!mWork.some(v => v)) { setStatus('消す部分がありません。'); return; }
+  busy(true, '背景で埋めています…');
+  await cvReady; const cv = window.cv; await nextFrame();
+  const t0 = performance.now();
+  const mats = []; const M = m => (mats.push(m), m);
+  try {
+    const { W, H, w, h } = S;
+    const mw = M(new cv.Mat(h, w, cv.CV_8UC1));
+    for (let i = 0; i < mWork.length; i++) mw.data[i] = mWork[i] ? 255 : 0;
+    const mf = M(new cv.Mat());
+    cv.resize(mw, mf, new cv.Size(W, H), 0, 0, cv.INTER_LINEAR);
+    cv.threshold(mf, mf, 0, 255, cv.THRESH_BINARY);
+    // bounding box of the mask (in full res)
+    let bx0 = w, by0 = h, bx1 = -1, by1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mWork[y * w + x]) {
+      if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y;
+    }
+    const rad = Math.max(2, Math.round(+$('#rad').value / S.s));
+    const p = rad * 3 + 4;
+    const X0 = Math.max(0, Math.floor(bx0 / S.s) - p), Y0 = Math.max(0, Math.floor(by0 / S.s) - p);
+    const X1 = Math.min(W, Math.ceil((bx1 + 1) / S.s) + p), Y1 = Math.min(H, Math.ceil((by1 + 1) / S.s) + p);
+    const rw = X1 - X0, rh = Y1 - Y0;
+    const fctx = S.full.getContext('2d');
+    const id = fctx.getImageData(X0, Y0, rw, rh);
+    const src = M(cv.matFromImageData(id));
+    const rgb = M(new cv.Mat()); cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
+    const msub = M(mf.roi(new cv.Rect(X0, Y0, rw, rh)));
+    const mroi = M(new cv.Mat()); msub.copyTo(mroi);
+    const out = M(new cv.Mat());
+    cv.inpaint(rgb, mroi, out, rad, cv.INPAINT_TELEA);
+    const outA = M(new cv.Mat()); cv.cvtColor(out, outA, cv.COLOR_RGB2RGBA);
+    const res = new ImageData(new Uint8ClampedArray(outA.data), rw, rh);
+    S.result = document.createElement('canvas'); S.result.width = W; S.result.height = H;
+    const rctx = S.result.getContext('2d');
+    rctx.drawImage(S.full, 0, 0); rctx.putImageData(res, X0, Y0);
+    S.resultWork = document.createElement('canvas'); S.resultWork.width = w; S.resultWork.height = h;
+    const rwc = S.resultWork.getContext('2d'); rwc.imageSmoothingQuality = 'high';
+    rwc.drawImage(S.result, 0, 0, w, h);
+    setStatus(`枠を消しました（${Math.round(performance.now() - t0)}ms）。「押して比較」で元画像と見比べられます。残りがあればブラシで塗って再度「枠を消す」。`);
+    setHint('完成！「保存」で画像をダウンロードできます。');
+    setMode('none');
+  } catch (e) {
+    console.error(e);
+    setStatus('処理中にエラーが発生しました：' + (e.message || e));
+  } finally {
+    mats.forEach(m => m.delete());
+    busy(false); updateButtons(); render();
+  }
+}
+
+function backToEdit() {
+  S.result = S.resultWork = null;
+  setHint('赤＝消す枠。調整したら「枠を消す」を押してください。');
+  updateButtons();
+}
+
+// ---------- misc buttons ----------
+const cmp = $('#bCompare');
+const cmpOn = e => { e.preventDefault(); S.showOrig = true; render(); };
+const cmpOff = () => { S.showOrig = false; render(); };
+cmp.addEventListener('pointerdown', cmpOn);
+['pointerup', 'pointerleave', 'pointercancel'].forEach(t => cmp.addEventListener(t, cmpOff));
+$('#bMask').onclick = () => { S.showMask = !S.showMask; $('#bMask').textContent = '赤表示 ' + (S.showMask ? 'ON' : 'OFF'); render(); };
+$('#bClear').onclick = () => {
+  if (S.resultWork) backToEdit();
+  S.auto = null; S.add.fill(0); S.erase.fill(0); updateButtons(); render();
+  setStatus('マスクを消去しました。ブラシで塗るか、もう一度「枠を検出」してください。');
+};
+$('#bNew').onclick = () => file.click();
+$('#bSave').onclick = () => {
+  if (!S.result) return;
+  S.result.toBlob(b => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b); a.download = 'akusta-wakekeshi.jpg';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, 'image/jpeg', 0.95);
+};
+
+function updateButtons() {
+  const has = S.add && (S.add.some(v => v) || (S.auto && S.auto.some(v => v)));
+  $('#bApply').disabled = !has;
+  $('#bSave').disabled = !S.result;
+  cmp.disabled = !S.result;
+}
+
+// expose for debugging / tests
+window.akusta = { S, detect, apply, computeFrame, finalMask, setImage };
+})();
+</script>
+</body>
+</html>
